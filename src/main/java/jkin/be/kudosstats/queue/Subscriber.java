@@ -2,6 +2,7 @@ package jkin.be.kudosstats.queue;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import jkin.be.kudosstats.model.KudosMessage;
 import jkin.be.kudosstats.model.User;
 import jkin.be.kudosstats.repository.UserRepository;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ public class Subscriber {
     @Autowired
     KudosController kudosController;
     */
+
     @Autowired
     private UserRepository userRepository;
 
@@ -28,17 +30,18 @@ public class Subscriber {
     {
         LOGGER.info("{}", messageFromRabbitMQ);
 
-        //Handle Message from Rabbit
-
+        //Handle Message from Rabbit QUEUE
         //kudosController.KudosHandler(messageFromRabbitMQ);
+
         LOGGER.info("{}", messageFromRabbitMQ);
         JsonObject jsonObject = new JsonParser().parse(messageFromRabbitMQ).getAsJsonObject();
 
-        String kudosDestino = jsonObject.get("destino").getAsString();
-        String kudosTema = jsonObject.get("tema").getAsString();
-        String kudosFuente = jsonObject.get("fuente").getAsString();
+        String idKudos = jsonObject.get("IdKudos").getAsString();
+        String kudosDestino = jsonObject.get("Destino").getAsString();
+        String kudosFuente = jsonObject.get("Fuente").getAsString();
+        String kudosAccion = jsonObject.get("Accion").getAsString();
 
-        LOGGER.info("Kudos Received: " + kudosDestino + " | " + kudosFuente + " | " + kudosTema);
+        LOGGER.info("Kudos Received: " + kudosDestino + " | " + kudosFuente + " | " + kudosAccion);
 
         //Get User by destination from DB
         try {
@@ -47,7 +50,16 @@ public class Subscriber {
             if (user != null) {
                 Long kudosQty = user.getTotalKudos();
                 LOGGER.info("#Kudos Usuario previous: " + user.getTotalKudos() + " User:" + kudosDestino);
-                user.setTotalKudos(kudosQty + 1);
+
+                if(kudosAccion.equalsIgnoreCase("ADD_KUDOS"))
+                {
+                    user.setTotalKudos(kudosQty + 1);
+                }
+                else //DELETE_KUDOS
+                {
+                    if(kudosQty > 0)
+                        user.setTotalKudos(kudosQty - 1);
+                }
 
                 userRepository.save(user);
 
